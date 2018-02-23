@@ -4,8 +4,7 @@
         [mikera.image.core :as image-core])
   (:require [dynne.sampled-sound :as sampled-sound]))
 
-(def ant (load-image-resource "Ant.png"))
-(def bi (image-core/new-image 32 32))
+(def ant (load-image "/home/liria/clojure/image-to-sound-clj/resources/image-to-sound/image/samples/Ant.png"))
 
 
 (defn extract-pixels-from-image
@@ -59,6 +58,16 @@
         (Math/sqrt))))
 
 
+(defn append-all
+  "Concatenates multiple sounds together -- Charlie Wang"
+  [sounds]
+  (let [durations (pmap #(sampled-sound/duration %) sounds)]
+    (reify sampled-sound/SampledSound
+      (duration [this] (reduce + durations))
+      (channels [this] (sampled-sound/channels (first sounds)))
+      (chunks [this sample-rate]
+        (doall (mapcat #(sampled-sound/chunks % sample-rate) sounds))))))
+
 (defn create-sounds
   "Uses stddev of a pixel to determine length; uses rgb to determine frequency"
   ([image]
@@ -70,12 +79,7 @@
        (let [red-sounds (map create-sinusoidal-sound red-freqs stddev)
              blue-sounds (map create-sinusoidal-sound blue-freqs stddev)
              green-sounds (map create-sinusoidal-sound green-freqs stddev)]
-         (let [red-sound (reduce sampled-sound/append red-sounds)
-               blue-sound (reduce sampled-sound/append blue-sounds)
-               green-sound (reduce sampled-sound/append green-sounds)]
-           (sampled-sound/mix red-sound blue-sound)
-           )
-         )))))
+         (append-all  red-sounds))))))
 
 
 (defn save-sounds
@@ -87,5 +91,5 @@
   "I don't do a whole lot ... yet."
   [& args]
   (println "Hello, World!")
-  (save-sounds bi "bi.wav")
-  (save-sounds ant "ant.wav"))
+  (save-sounds ant "ant.wav")
+)
